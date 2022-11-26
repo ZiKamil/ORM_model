@@ -1,5 +1,5 @@
 from models import SomeTable
-from orm import BaseManager, OrmModel
+from orm import BaseManager
 
 
 if __name__ == '__main__':
@@ -11,21 +11,21 @@ if __name__ == '__main__':
     bd.set_connection()
     bd.migrations(bd)
 
-    print(SomeTable.objects.select("some_field_1", "some_field_2", "some_field_3"))
+    print(SomeTable.objects.filter("some_field_1", "some_field_2", "some_field_3"))
 
     table_data = [
         {"some_field_1": "Iphone", "some_field_2": 2020, "some_field_3": 60000.50},
         {"some_field_1": "Xiaomi", "some_field_2": 2020, "some_field_3": 35000.50}
     ]
     SomeTable.objects.bulk_insert(rows=table_data)
-    print(SomeTable.objects.select("pk", "some_field_1", "some_field_2", "some_field_3"))
+    print(SomeTable.objects.filter("pk", "some_field_1", "some_field_2", "some_field_3"))
     print(SomeTable.objects.filter("some_field_1", "some_field_2", "some_field_3", some_field_1='Iphone'))
 
     SomeTable.objects.update(
         pk=1,
         new_data={'some_field_2': 2019, 'some_field_3': '59555.55'}
     )
-    print(SomeTable.objects.select("some_field_1", "some_field_2", "some_field_3"))
+    print(SomeTable.objects.filter("some_field_1", "some_field_2", "some_field_3"))
 
-    SomeTable.objects.delete()
-    print(SomeTable.objects.select("some_field_1", "some_field_2", "some_field_3"))
+    SomeTable.objects.delete(pk=1)
+    print(SomeTable.objects.filter("some_field_1", "some_field_2", "some_field_3"))

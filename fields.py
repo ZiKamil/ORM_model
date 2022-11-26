@@ -13,6 +13,7 @@ class OrmInteger:
 class OrmText:
     def __init__(self, primary_key=False):
         self.primary_key = primary_key
+
     def get_primary_key(self):
         return self.primary_key
 

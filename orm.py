@@ -1,13 +1,11 @@
-from models import *
 import sqlite3
-import psycopg2
 
 
 class BaseManager:
     connection = None
 
     @classmethod
-    def set_connection(cls, database_settings=None):
+    def set_connection(cls):
         connection = sqlite3.connect('sqlite_python.db')
         cls.connection = connection
 
@@ -21,55 +19,43 @@ class BaseManager:
 
     def migrations(self):
         cursor = self.get_cursor()
+        # TODO: вместо sqlite_master, брать значение из config файла
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         available_table = [i[-1] for i in cursor.fetchall()]
         classes = OrmModel.__subclasses__()
         for i in classes:
-            if i.__name__ not in available_table:
-                fields = ""
-                for k, v in i.__dict__.items():
-                    if k == '__doc__' or k == '__module__':
-                        continue
-                    fields += k + " "
-                    if v.__class__.__name__ == "OrmInteger":
-                        fields += "INTEGER"
-                    if v.__class__.__name__ == "OrmText":
-                        fields += "TEXT"
-                    if v.__class__.__name__ == "OrmFloat":
-                        fields += "REAL"
-                    if v.get_primary_key() == True:
-                        fields += " PRIMARY KEY "
-                        if v.__class__.__name__ == "OrmInteger" and v.get_autoincrement():
-                            fields += "AUTOINCREMENT, "
-                        else:
-                            fields += ", "
+            if i.__name__ in available_table:
+                return
+            fields = ""
+            for k, v in i.__dict__.items():
+                if k == '__doc__' or k == '__module__':
+                    continue
+                fields += k + " "
+                if v.__class__.__name__ == "OrmInteger":
+                    fields += "INTEGER"
+                if v.__class__.__name__ == "OrmText":
+                    fields += "TEXT"
+                if v.__class__.__name__ == "OrmFloat":
+                    fields += "REAL"
+                if v.get_primary_key():
+                    fields += " PRIMARY KEY "
+                    if v.__class__.__name__ == "OrmInteger" and v.get_autoincrement():
+                        fields += "AUTOINCREMENT, "
                     else:
                         fields += ", "
-                fields = fields.strip()[:-1]
-                query = f"CREATE TABLE {i.__name__} ({fields})"
-                cursor.execute(query)
-
-    def select(self, *field_names):
-        fields_format = ', '.join(field_names)
-        query = f"SELECT {fields_format} FROM {self.model_class.__name__}"
-
-        cursor = self.get_cursor()
-        cursor.execute(query)
-
-        model_objects = list()
-        result = cursor.fetchall()
-
-        for row_values in result:
-            keys, values = field_names, row_values
-            row_data = dict(zip(keys, values))
-            model_objects.append(self.model_class(**row_data))
-
-        return model_objects
+                else:
+                    fields += ", "
+            fields = fields.strip()[:-1]
+            query = f"CREATE TABLE {i.__name__} ({fields})"
+            cursor.execute(query)
 
     def filter(self, *field_names, **filter_params):
         fields_format = ', '.join(field_names)
-        filter_params = ', '.join([f"{field_name} = '{value}'" for field_name, value in filter_params.items()])
-        query = f"SELECT {fields_format} FROM {self.model_class.__name__} WHERE {filter_params}"
+        if filter_params:
+            filter_params = ', '.join([f"{field_name} = '{value}'" for field_name, value in filter_params.items()])
+            query = f"SELECT {fields_format} FROM {self.model_class.__name__} WHERE {filter_params}"
+        else:
+            query = f"SELECT {fields_format} FROM {self.model_class.__name__}"
 
         cursor = self.get_cursor()
         cursor.execute(query)
@@ -107,13 +93,13 @@ class BaseManager:
         filter_params = ', '.join([f"{field_name} = '{value}'" for field_name, value in filter_params.items()])
         placeholder_format = ', '.join([f'{field_name} = {value}' for field_name, value in field_names])
         query = f"UPDATE {self.model_class.__name__} SET {placeholder_format} WHERE {filter_params}"
-        print(query)
 
         cursor = self.get_cursor()
         cursor.execute(query)
 
-    def delete(self):
-        query = f"DELETE FROM {self.model_class.__name__} "
+    def delete(self, **filter_params):
+        filter_params = ', '.join([f"{field_name} = '{value}'" for field_name, value in filter_params.items()])
+        query = f"DELETE FROM {self.model_class.__name__} WHERE {filter_params}"
 
         cursor = self.get_cursor()
         cursor.execute(query)

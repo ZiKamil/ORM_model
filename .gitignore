@@ -20,6 +20,7 @@
 *.tar
 *.zip
 .venv
+.idea
 
 # Logs and databases #
 ######################

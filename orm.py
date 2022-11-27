@@ -27,6 +27,7 @@ class BaseManager:
             if i.__name__ in available_table:
                 return
             fields = ""
+            is_primary_key = False
             for k, v in i.__dict__.items():
                 if k == '__doc__' or k == '__module__':
                     continue
@@ -39,12 +40,15 @@ class BaseManager:
                     fields += "REAL"
                 if v.get_primary_key():
                     fields += " PRIMARY KEY "
+                    is_primary_key = True
                     if v.__class__.__name__ == "OrmInteger" and v.get_autoincrement():
                         fields += "AUTOINCREMENT, "
                     else:
                         fields += ", "
                 else:
                     fields += ", "
+            if not is_primary_key:
+                fields = "id INTEGER PRIMARY KEY AUTOINCREMENT, "+fields
             fields = fields.strip()[:-1]
             query = f"CREATE TABLE {i.__name__} ({fields})"
             cursor.execute(query)
